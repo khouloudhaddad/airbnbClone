@@ -9,7 +9,11 @@ const RegisterPage = () => {
 
     function handleRegister(event){
         event.preventDefault();
-        axios.get("http://localhost:4000/test");
+        axios.post("/register", {
+            name,
+            email,
+            password
+        });
     }
     return (
         <>
