@@ -3,13 +3,14 @@ const cors = require('cors')
 require('dotenv').config()
 const bcrypt = require('bcrypt')
 const User = require('./models/User')
+const jwt = require('jsonwebtoken');
 const app = express()
 
 const connectDB = require('./config/db');
 
 
 const bcryptSalt = bcrypt.genSaltSync(10);
-
+const jwtSecret = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9'
 
 app.use(cors({
     credentials: true,
@@ -21,39 +22,48 @@ app.use(express.json());
 /***DB Connection */
 connectDB();
 
-app.post('/register', async (req, res)=>{
-    const {name, email, password}  = req.body;
+app.post('/register', async (req, res) => {
+    const { name, email, password } = req.body;
     //res.json({name, email, password})
-    try{
+    try {
         const createdUser = await User.create({
-            name, 
-            email, 
+            name,
+            email,
             password: bcrypt.hashSync(password, bcryptSalt)
         })
-    
+
         res.status(201).json(createdUser)
-    }catch(e){
+    } catch (e) {
         res.status(422).json(e)
     }
 });
 
-app.post("/login", async (req, res)=>{
-    const {email, password} = req.body
+app.post("/login", async (req, res) => {
 
-    try{
-        const user = await User.findOne({email})
-        if(user){
-            //check password
-            const paswordOk = bcrypt.compareSync(password, user.password);
-            if(passwordOk){
-                res.status(200).json(user)
-            }else{
-                res.status(404).json('Incorrect Password')
-            }
+    const { email, password } = req.body;
+
+    //console.log(req.body)
+
+    const user = await User.findOne({ email })
+    if (user) {
+        //check password
+        const passwordOk = bcrypt.compareSync(password, user.password);
+        if (passwordOk) {
+
+            jwt.sign({
+                email: user.email,
+                id: user._id
+            }, jwtSecret, {}, (err, token) => {
+                if (err) throw err;
+                res.cookie('token', token).json(user);
+            });
+        } else {
+            res.status(404).json('Incorrect Password')
         }
-    }catch(e){
-        res.status(422).json(e)
-    }
+    }else {
+        res.json('not found');
+      }
+
 })
 
-app.listen(4000);
+app.listen(4001);
