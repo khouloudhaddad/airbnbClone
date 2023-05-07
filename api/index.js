@@ -4,6 +4,7 @@ require('dotenv').config()
 const bcrypt = require('bcrypt')
 const User = require('./models/User')
 const jwt = require('jsonwebtoken');
+const CookieParser = require('cookie-parser')
 const app = express()
 
 const connectDB = require('./config/db');
@@ -16,7 +17,7 @@ app.use(cors({
     credentials: true,
     origin: 'http://localhost:5173'
 }));
-
+app.use(CookieParser())
 app.use(express.json());
 
 /***DB Connection */
@@ -52,6 +53,7 @@ app.post("/login", async (req, res) => {
 
             jwt.sign({
                 email: user.email,
+                name: user.name,
                 id: user._id
             }, jwtSecret, {}, (err, token) => {
                 if (err) throw err;
@@ -60,10 +62,27 @@ app.post("/login", async (req, res) => {
         } else {
             res.status(404).json('Incorrect Password')
         }
-    }else {
+    } else {
         res.json('not found');
-      }
+    }
+
+});
+
+//User profile
+app.get('/profile', (req, res)=>{
+
+    const {token} = req.cookies;
+
+    if(token){
+        jwt.verify(token, jwtSecret, {}, (err, user)=>{
+            if(err) throw err;
+
+            res.json(user)
+        })
+    }else{
+        res.json(null)
+    }
 
 })
 
-app.listen(4001);
+app.listen(4000);
